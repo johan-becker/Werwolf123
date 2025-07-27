@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  username        String   @unique
+  passwordHash    String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  hostedGames     Game[]   @relation("GameHost")
+  playerStats     PlayerStats[]
+  gameHistories   GameHistory[]
+}
+
+model Game {
+  id              String   @id @default(cuid())
+  hostId          String
+  host            User     @relation("GameHost", fields: [hostId], references: [id])
+  status          GameStatus @default(WAITING)
+  settings        Json
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime @default(now())
+  
+  gameHistories   GameHistory[]
+}
+
+model PlayerStats {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  
+  gamesPlayed     Int      @default(0)
+  gamesWon        Int      @default(0)
+  gamesAsWerewolf Int      @default(0)
+  gamesAsVillager Int      @default(0)
+  survivals       Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([userId])
+}
+
+model GameHistory {
+  id              String   @id @default(cuid())
+  gameId          String
+  game            Game     @relation(fields: [gameId], references: [id])
+  playerId        String
+  player          User     @relation(fields: [playerId], references: [id])
+  
+  role            String
+  survived        Boolean
+  team            String
+  won             Boolean
+  
+  createdAt       DateTime @default(now())
+  
+  @@unique([gameId, playerId])
+}
+
+enum GameStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
